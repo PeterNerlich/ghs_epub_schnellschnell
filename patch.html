@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>GHS Schnell-Schnellmenü</title>
+	<style type="text/css">
+		html, body {
+			font-family: sans-serif;
+		}
+		input, button {
+			font-size: 1.4em;
+			margin: 1em 0;
+		}
+
+		#msg {
+			display: flex;
+			flex-direction: column;
+			align-items: start;
+		}
+		#msg p {
+			margin: .3em 0;
+			padding: 1em;
+			border-radius: .5em;
+			box-shadow: .02em .1em #000;
+			background-color: #ddd;
+		}
+		#msg p.info {
+			background-color: #bdf;
+		}
+		#msg p.warn {
+			background-color: #ffb;
+		}
+		#msg p.error {
+			background-color: #fa8;
+		}
+		#msg p.success {
+			background-color: #8f8;
+		}
+	</style>
+	<script type="text/javascript" src="https://unpkg.com/jszip@3.10.1/dist/jszip.js"></script>
+</head>
+<body>
+
+<h1>Schnell-Schnellmenü für GHS EPUB</h1>
+
+<p>
+	Das, was ich am meisten am GHS vermisse, ist ein besseres und schnelleres Schnellmenü. Also habe ich mir selber eins erstellt.
+	<br>
+	Natürlich kann ich nicht einfach Kopien des EBooks and Andere weitergeben, aber ich kann meine Änderung und ein Werkzeug zur Anwendung dieser auf eine originale Version des EBooks zur Verfügung stellen.
+	<br>
+	Das passiert nur lokal im Browser, es werden keine Dateien auf andere Geräte oder Server hoch- bzw. heruntergeladen.
+</p>
+<p>Wähle einfach deine EPUB-Datei des GHS aus und speichere die modifizierte Version mit dem Schnell-Schnellmenü ab. PDF und MOBI werden zur Zeit nicht unterstützt.</p>
+<p>
+	<i>
+		<strong>Behalte immer ein Backup deiner Originaldatei.</strong> Du benutzt dieses Tool auf eigene Verantwortung und bist selbst dafür verantwortlich, dafür zu sorgen, dass Programmierfehler nicht zum Verlust deiner Datei führen.
+		<br>
+		Also überspeicher nicht deine Originaldatei!
+	</i>
+</p>
+
+<input type="file" accept="application/epub+zip" />
+
+<button disabled>EPUB Modifizieren und Speichern</button>
+
+<div id="msg"></div>
+
+
+<script type="text/javascript" src="generateQuickmenu.js"></script>
+
+<script type="text/javascript">
+
+const input = document.querySelector('input[type="file"]');
+const btn = document.querySelector("button");
+const msg = document.querySelector("#msg");
+
+let candidate = null;
+
+
+digits = [0,1,2,3,4,5,6,7,8,9];
+
+const expectedFiles = [
+	"mimetype",
+	"OEBPS/toc.ncx",
+	"OEBPS/content.opf",
+	"OEBPS/Text/c54.html",
+	"OEBPS/Text/c53.html",
+	"OEBPS/Text/c88.html",
+	"OEBPS/Text/Section0005.html",
+	"OEBPS/Text/c8.html",
+	"OEBPS/Text/c93.html",
+	"OEBPS/Text/c30.html",
+	"OEBPS/Text/c2.html",
+	"OEBPS/Text/c64.html",
+	"OEBPS/Text/c37.html",
+	"OEBPS/Text/c40.html",
+	"OEBPS/Text/c42.html",
+	"OEBPS/Text/c16.html",
+	"OEBPS/Text/Section0004.html",
+	"OEBPS/Text/c89.html",
+	"OEBPS/Text/c48.html",
+	"OEBPS/Text/c92.html",
+	"OEBPS/Text/c78.html",
+	"OEBPS/Text/Section0001.html",
+	"OEBPS/Text/c15.html",
+	"OEBPS/Text/c27.html",
+	"OEBPS/Text/Section0002.html",
+	"OEBPS/Text/c28.html",
+	"OEBPS/Text/Section0003.html",
+	"OEBPS/Text/c45.html",
+	"OEBPS/Text/c39.html",
+	"OEBPS/Text/c63.html",
+	"OEBPS/Text/c74.html",
+	"OEBPS/Text/c22.html",
+	"OEBPS/Text/c41.html",
+	"OEBPS/Text/c56.html",
+	"OEBPS/Text/c76.html",
+	"OEBPS/Text/c34.html",
+	"OEBPS/Text/c83.html",
+	"OEBPS/Text/c4.html",
+	"OEBPS/Text/Section0008.html",
+	"OEBPS/Text/c98.html",
+	"OEBPS/Text/c50.html",
+	"OEBPS/Text/c91.html",
+	"OEBPS/Text/c38.html",
+	"OEBPS/Text/c85.html",
+	"OEBPS/Text/c58.html",
+	"OEBPS/Text/c21.html",
+	"OEBPS/Text/Section0007.html",
+	"OEBPS/Text/c79.html",
+	"OEBPS/Text/c60.html",
+	"OEBPS/Text/c23.html",
+	"OEBPS/Text/c90.html",
+	"OEBPS/Text/ccover.html",
+	"OEBPS/Text/c47.html",
+	"OEBPS/Text/c31.html",
+	"OEBPS/Text/c66.html",
+	"OEBPS/Text/c80.html",
+	"OEBPS/Text/c20.html",
+	"OEBPS/Text/c84.html",
+	"OEBPS/Text/c57.html",
+	"OEBPS/Text/c86.html",
+	"OEBPS/Text/c77.html",
+	"OEBPS/Text/c32.html",
+	"OEBPS/Text/c67.html",
+	"OEBPS/Text/c24.html",
+	"OEBPS/Text/c70.html",
+	"OEBPS/Text/c69.html",
+	"OEBPS/Text/c5.html",
+	"OEBPS/Text/c14.html",
+	"OEBPS/Text/c55.html",
+	"OEBPS/Text/c3.html",
+	"OEBPS/Text/c95.html",
+	"OEBPS/Text/c59.html",
+	"OEBPS/Text/c33.html",
+	"OEBPS/Text/c62.html",
+	"OEBPS/Text/c97.html",
+	"OEBPS/Text/c46.html",
+	"OEBPS/Text/c71.html",
+	"OEBPS/Text/c11.html",
+	"OEBPS/Text/c73.html",
+	"OEBPS/Text/c52.html",
+	"OEBPS/Text/c49.html",
+	"OEBPS/Text/c72.html",
+	"OEBPS/Text/c94.html",
+	"OEBPS/Text/c25.html",
+	"OEBPS/Text/c96.html",
+	"OEBPS/Text/c35.html",
+	"OEBPS/Text/c61.html",
+	"OEBPS/Text/c87.html",
+	"OEBPS/Text/c29.html",
+	"OEBPS/Text/c43.html",
+	"OEBPS/Text/c13.html",
+	"OEBPS/Text/c10.html",
+	"OEBPS/Text/c17.html",
+	"OEBPS/Text/c75.html",
+	"OEBPS/Text/c6.html",
+	"OEBPS/Text/c7.html",
+	"OEBPS/Text/c81.html",
+	"OEBPS/Text/c19.html",
+	"OEBPS/Text/c12.html",
+	"OEBPS/Text/c65.html",
+	"OEBPS/Text/c36.html",
+	"OEBPS/Text/Section0006.html",
+	"OEBPS/Text/c44.html",
+	"OEBPS/Text/c26.html",
+	"OEBPS/Text/c18.html",
+	"OEBPS/Text/c51.html",
+	"OEBPS/Text/ctoc.html",
+	"OEBPS/Fonts/Metdemo.ttf",
+	"OEBPS/Styles/epub.css",
+	"OEBPS/Styles/epub2.css"
+];
+
+/*
+const newFiles = [
+	"OEBPS/Text/schnellschnell.html",
+].concat(
+	digits.map(x => `OEBPS/Text/schnellschnell${x}.html`)
+).concat(
+	digits.reduce((acc, x) => {
+		return acc.concat(digits.map(y => `OEBPS/Text/schnellschnell${x}${y}.html`));
+	}, [])
+);
+*/
+const newFiles = Object.keys(PATCHFILES).map(x => `OEBPS/Text/${x}`);
+
+
+function attemptPatch() {
+	console.log("attemptPatch()");
+	return checkFile()
+		.then(passed => {
+			btn.disabled = true;
+			if (!passed) {
+				console.log("checkFile failed");
+				return;
+			}
+			btn.innerText = "Modifiziere EPUB…";
+
+			// add / patch files
+			Object.entries(PATCHFILES).forEach(([filename, content]) => {
+				if (filename == PATCHROOT+'.html') console.log(`adding ${filename}`);
+				candidate.zip.file(`OEBPS/Text/${filename}`, content);
+			});
+
+			return Promise.all([
+				// patch manifest
+				candidate.zip
+					.file("OEBPS/content.opf")
+					.async("string")
+					.then(content => {
+						console.log("patching content.opf");
+						parser = new DOMParser();
+						xmlDoc = parser.parseFromString(content, "text/xml");
+
+						const manifest = xmlDoc.querySelector("manifest");
+						const mCover = manifest.querySelector("item#cover");
+
+						Object.keys(PATCHFILES).forEach(filename => {
+							const old = manifest.querySelectorAll(`item#${filename.split(".html")[0]}, item#${filename}, item[href="Text/${filename}"]`);
+							Array.from(old).forEach(e => manifest.removeChild(e));
+
+							const item = mCover.cloneNode();
+							item.id = filename.split(".html")[0];
+							item.setAttribute("href", `Text/${filename}`);
+							if (filename === `${PATCHROOT}.html`) {
+								mCover.insertAdjacentElement("afterEnd", item);
+							} else {
+								manifest.appendChild(item);
+							}
+						});
+
+						const spine = xmlDoc.querySelector("spine[toc]");
+
+						const old = manifest.querySelectorAll(`itemref[idref="${PATCHROOT}"]`);
+						Array.from(old).forEach(e => manifest.removeChild(e));
+
+						const sCover = spine.querySelector('itemref[idref="cover"]');
+						const sMenu = sCover.cloneNode();
+						sMenu.setAttribute("idref", PATCHROOT);
+						sCover.insertAdjacentElement("afterEnd", sMenu);
+
+						const serializer = new XMLSerializer();
+						return candidate.zip.file("OEBPS/content.opf", serializer.serializeToString(xmlDoc));
+					}),
+
+				// patch Table Of Contents
+				candidate.zip
+					.file("OEBPS/toc.ncx")
+					.async("string")
+					.then(content => {
+						console.log("patching toc.ncx");
+						parser = new DOMParser();
+						xmlDoc = parser.parseFromString(content, "text/xml");
+
+						const nav = xmlDoc.querySelector("navMap");
+
+						const old = nav.querySelectorAll(`navPoint#navPoint-2a`);
+						Array.from(old).forEach(e => nav.removeChild(e));
+
+						const oldm = nav.querySelector("navPoint#navPoint-2, navPoint#num_2");
+						const menu = oldm.cloneNode();
+						menu.id = "navPoint-2a";
+						menu.innerHTML = oldm.innerHTML;
+						menu.querySelector("navLabel > text").innerHTML = "Schnell-Schnellmenü";
+						menu.querySelector("content").setAttribute("src", `Text/${PATCHROOT}.html`);
+						oldm.insertAdjacentElement("beforeBegin", menu);
+
+						const serializer = new XMLSerializer();
+						return candidate.zip.file("OEBPS/toc.ncx", serializer.serializeToString(xmlDoc));
+					})
+
+			]);
+		}).then(() => {
+			console.log("repacking epub");
+			return candidate.zip.generateAsync({
+				type: "blob",
+				compression: "DEFLATE",
+				compressionOptions: {level: 9}
+			});
+		}).then(content => {
+			console.log("preparing blob for download");
+			candidate.blob = content;
+
+			parts = input.files[0].name.split(".");
+			if (parts.length <= 1 || parts[parts.length-1].toLowerCase() != "epub") {
+				parts.push("epub");
+			}
+			parts[parts.length - 2] += ".schnell_patch";
+
+			candidate.filename = parts.join(".");
+
+			btn.innerText = "Modifizierte EPUB speichern";
+			btn.disabled = false;
+
+			console.log("attemptPatch() successful!");
+			success(`Schnell-Schnellmenü erfolgreich in ${input.files[0].name} eingefügt.`)
+		})
+		.catch(e => {
+			error("Entschuldige, das hat nicht funktioniert wie es sollte. Entweder die Datei ist eine andere als die, mit der ich getestet habe, oder es haben sich doch kritische Bugs eingeschlichen.");
+			console.error(e);
+		});
+}
+
+function update() {
+	btn.disabled = true;
+	clearMsg();
+	if (input.files.length > 0) {
+		candidate = {};
+		btn.innerText = "Öffne EPUB…";
+
+		const reader = new FileReader();
+		reader.onload = e => {
+			if (e.target.readyState == FileReader.DONE) {
+				JSZip.loadAsync(e.target.result).then(zip => {
+					candidate.zip = zip;
+					return checkFile();
+				}).then(passed => {
+					btn.innerText = "EPUB Modifizieren und Speichern";
+					btn.disabled = !passed;
+					btn.focus();
+				});
+			}
+		}
+		reader.readAsArrayBuffer(input.files[0]);
+	} else {
+		info("Wähle deine GHS EPUB-Datei aus, zu der das Menü hinzugefügt werden soll!");
+		input.focus();
+	}
+}
+
+function checkFile() {
+	const files = Object.keys(candidate.zip.files);
+
+	let diff = expectedFiles.filter(x => !files.includes(x));
+	if (diff.length > 0) {
+		console.warn("Not present:", diff);
+		error("Das scheint keine GHS EPUB-Datei zu sein. Wenn du denkst, dass das ein Bug ist, kontaktiere mich!");
+		btn.disabled = true;
+		return false;
+	}
+
+	diff = newFiles.filter(x => files.includes(x));
+	if (diff.length > 0) {
+		console.warn("Already present:", diff);
+		warn("Einige der Dateien, die neu hinzugefügt werden sollen, existieren bereits in der EPUB-Datei. Wenn du versuchst, eine GHS EPUB-Datei zu modifizieren, die bereits mit diesem Werkzeug modifiziert wurde, sollten sie problemlos überschrieben werden können. Wenn du irgendetwas anderes mit der EPUB angestellt hast was diese Dateien hinzugefügt hat, könnte es sein, dass sich nicht alles so integriert, wie es sollte.");
+		warn("Behalte immer ein BACKUP deiner originalen, unmodifizierten EPUB-Datei!");
+	}
+
+	const manifest = candidate.zip.file("OEBPS/content.opf");
+
+	return manifest.async("string").then(content => {
+		const expectedMeta = `
+<package xmlns="http://www.idpf.org/2007/opf" unique-identifier="bookid" version="2.0">
+  <metadata xmlns:dc="http://purl.org/dc/elements/1.1/">
+    <dc:identifier id="bookid">XXX_9783815026342</dc:identifier>
+    <dc:title>glauben • hoffen • singen</dc:title>
+    <dc:creator xmlns:opf="http://www.idpf.org/2007/opf" opf:file-as="Freikirche der Siebenten-Tags-Adventisten" opf:role="aut">Freikirche der Siebenten-Tags-Adventisten</dc:creator>
+    <dc:language>de</dc:language>
+    <dc:contributor xmlns:opf="http://www.idpf.org/2007/opf" opf:role="mrk">Zeilenwert GmbH</dc:contributor>
+    <dc:date xmlns:opf="http://www.idpf.org/2007/opf" opf:event="modification">2015-08-31</dc:date>
+    <dc:publisher>Saatkorn-Verlag GmbH, Abt. Advent-Verlag</dc:publisher>
+    <meta name="cover" content="cover.jpg" />
+    <meta content="0.8.1" name="Sigil version" />
+  </metadata>
+</package>
+`;
+		parser = new DOMParser();
+		xmlDoc = parser.parseFromString(content, "text/xml");
+		expectedDoc = parser.parseFromString(expectedMeta, "text/xml");
+
+		return xmlDoc.querySelector("package > metadata").outerHTML == expectedDoc.querySelector("package > metadata").outerHTML;
+	}).catch(e => {
+		console.error(e);
+		btn.disabled = true;
+		throw e;
+	});
+}
+
+input.addEventListener("change", update);
+
+btn.addEventListener("click", () => {
+	if (!candidate.blob) {
+		clearMsg();
+		attemptPatch()
+			.then(save);
+	}
+	if (candidate.blob) {
+		console.log("saving blob");
+		save();
+	} else {
+		console.warn("not saving", candidate);
+	}
+});
+
+
+update();
+
+
+
+function save() {
+	saveAs(candidate.blob, candidate.filename);
+}
+
+function saveAs(blob, filename) {
+	const url = URL.createObjectURL(blob);
+	const a = document.createElement("a");
+	a.href = url;
+	a.download = filename;
+	a.click();
+}
+
+
+function clearMsg() {
+	msg.innerHTML = "";
+}
+
+function addMsg(m) {
+	const p = document.createElement("p");
+	p.innerText = m;
+	msg.appendChild(p);
+	return p;
+}
+
+function info(m) {
+	addMsg(m).classList.add("info");
+}
+function warn(m) {
+	addMsg(m).classList.add("warn");
+}
+function error(m) {
+	addMsg(m).classList.add("error");
+}
+function success(m) {
+	addMsg(m).classList.add("success");
+}
+
+</script>
+
+</body>
+</html>
